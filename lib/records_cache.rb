@@ -102,13 +102,17 @@ class RecordsCache
     extend ActiveSupport::Concern
 
     class_methods do
-      attr_reader :records_cache
-
       def cache_records(scope_modifier: nil, handle_updates: false, expiration_delay: nil)
-        @records_cache = RecordsCache.new(self, { scope_modifier:, handle_updates:, expiration_delay: })
+        records_cache = RecordsCache.new(self, { scope_modifier:, handle_updates:, expiration_delay: })
+
+        define_singleton_method :records_cache do
+          records_cache
+        end
+
+        after_commit -> { self.class.records_cache.reset }
 
         # wait until cache is populated on at startup synchronously
-        @records_cache.reload if Rake.application.top_level_tasks.empty?
+        records_cache.reload if Rake.application.top_level_tasks.empty?
       end
 
       def cache_belongs_to_association(association)
