@@ -9,14 +9,14 @@ class RecordsCache
 
   def each(&block)
     thread_unsafe_each do |record|
-      block.call(record.dup)
+      block.call(dup_record(record))
     end
   end
 
   def thread_unsafe_select(&comparator_block)
     result = []
     thread_unsafe_each do |record|
-      result << record.dup if comparator_block.call(record)
+      result << dup_record(record) if comparator_block.call(record)
     end
     result
   end
@@ -67,6 +67,13 @@ class RecordsCache
   end
 
   private
+
+  def dup_record(record)
+    result = record.clone
+    result.instance_variable_set(:@belongs_to_associations_record_cache, {})
+    result.instance_variable_set(:@association_cache, {})
+    result
+  end
 
   def thread_unsafe_each(&)
     (@records || reload).each(&)
@@ -136,11 +143,11 @@ class RecordsCache
         define_method association do |**args|
           return send("original_#{association}", **args) if association(association.to_sym).loaded? || args.present?
 
-          instance_variable = :"@#{association}_cache"
-          return instance_variable_get(instance_variable) if instance_variable_defined?(instance_variable)
+          cache = @belongs_to_associations_record_cache ||= {}
+          return cache[association] if cache.key?(association)
 
-          cached_value = association(association).klass.records_cache.by_id(send("#{association}_id"))
-          instance_variable_set(instance_variable, cached_value)
+          value = association(association).klass.records_cache.by_id(send("#{association}_id"))
+          cache[association] = value
         end
       end
     end
