@@ -7,13 +7,24 @@ class RecordsCache
     @record_class = record_class
   end
 
-  def each(&)
-    (@records || reload).each(&)
+  def each(&block)
+    thread_unsafe_each do |record|
+      block.call(record.dup)
+    end
+  end
+
+  def thread_unsafe_select(&comparator_block)
+    result = []
+    thread_unsafe_each do |record|
+      result << record.dup if comparator_block.call(record)
+    end
+    result
   end
 
   def by_id(id)
     @by_id ||= to_a.index_by(&:id)
-    @by_id[id] || @record_class.find_by(id:)
+    @by_id[id] ||= @record_class.find_by(id:)
+    @by_id[id].dup
   end
 
   def by_ids(ids)
@@ -56,6 +67,10 @@ class RecordsCache
   end
 
   private
+
+  def thread_unsafe_each(&)
+    (@records || reload).each(&)
+  end
 
   def outdated?
     outdated_updates? || outdated_expiration?
