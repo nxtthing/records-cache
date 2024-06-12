@@ -24,7 +24,7 @@ class RecordsCache
   def by_id(id)
     @by_id ||= to_a.index_by(&:id)
     @by_id[id] ||= @record_class.find_by(id:)
-    @by_id[id].dup
+    dup_record(@by_id[id])
   end
 
   def by_ids(ids)
@@ -69,10 +69,7 @@ class RecordsCache
   private
 
   def dup_record(record)
-    result = record.clone
-    result.instance_variable_set(:@belongs_to_associations_record_cache, {})
-    result.instance_variable_set(:@association_cache, {})
-    result
+    record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
   end
 
   def thread_unsafe_each(&)
