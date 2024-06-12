@@ -24,7 +24,8 @@ class RecordsCache
   def by_id(id)
     @by_id ||= to_a.index_by(&:id)
     @by_id[id] ||= @record_class.find_by(id:)
-    dup_record(@by_id[id])
+    record = @by_id[id]
+    record && dup_record(record)
   end
 
   def by_ids(ids)
