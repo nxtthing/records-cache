@@ -53,7 +53,7 @@ class RecordsCache
     records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
     @last_cached_update_at = records_scope.pluck(:updated_at).max if handle_updates?
     @last_reload_at = Time.current if handle_expiration?
-    @records = records_scope.to_a
+    @records = @settings[:after_load].call(records_scope.to_a)
   end
 
   def outdated_expiration?
@@ -130,10 +130,16 @@ class RecordsCache
     extend ActiveSupport::Concern
 
     class_methods do
-      def cache_records(scope_modifier: nil, handle_updates: false, expiration_delay: nil, thread_safe: true)
+      def cache_records(
+        scope_modifier: nil,
+        handle_updates: false,
+        expiration_delay: nil,
+        thread_safe: true,
+        after_load: -> (records) { records }
+      )
         records_cache = RecordsCache.new(
           self,
-          { scope_modifier:, handle_updates:, expiration_delay:, thread_safe: }
+          { scope_modifier:, handle_updates:, expiration_delay:, thread_safe:, after_load: }
         )
 
         define_singleton_method :records_cache do
