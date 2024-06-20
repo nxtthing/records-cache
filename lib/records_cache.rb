@@ -9,14 +9,14 @@ class RecordsCache
 
   def each(&block)
     thread_unsafe_each do |record|
-      block.call(dup_record(record))
+      block.call(result_record(record))
     end
   end
 
   def thread_unsafe_select(&comparator_block)
     result = []
     thread_unsafe_each do |record|
-      result << dup_record(record) if comparator_block.call(record)
+      result << result_record(record) if comparator_block.call(record)
     end
     result
   end
@@ -25,7 +25,7 @@ class RecordsCache
     @by_id ||= to_a.index_by(&:id)
     @by_id[id] ||= @record_class.find_by(id:)
     record = @by_id[id]
-    record && dup_record(record)
+    record && result_record(record)
   end
 
   def by_ids(ids)
@@ -69,7 +69,14 @@ class RecordsCache
 
   private
 
+  def result_record(record)
+    return record unless @settings[:thread_safe]
+
+    dup_record(record)
+  end
+
   def dup_record(record)
+
     record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
   end
 
@@ -122,8 +129,11 @@ class RecordsCache
     extend ActiveSupport::Concern
 
     class_methods do
-      def cache_records(scope_modifier: nil, handle_updates: false, expiration_delay: nil)
-        records_cache = RecordsCache.new(self, { scope_modifier:, handle_updates:, expiration_delay: })
+      def cache_records(scope_modifier: nil, handle_updates: false, expiration_delay: nil, thread_safe: true)
+        records_cache = RecordsCache.new(
+          self,
+          { scope_modifier:, handle_updates:, expiration_delay:, thread_safe: }
+        )
 
         define_singleton_method :records_cache do
           records_cache
