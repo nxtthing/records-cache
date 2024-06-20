@@ -1,14 +1,14 @@
 GIT
   remote: https://github.com/nxtthing/thread-cache
-  revision: f8f86e6873ee2a718ef0b7d3aad278a91066e975
+  revision: 23abbe7d31d48551a8e8a93d516a18dac8a102f5
   specs:
-    thread_cache (0.0.1)
+    thread_cache (0.0.2)
       activesupport
 
 PATH
   remote: .
   specs:
-    records_cache (0.1.1)
+    records_cache (0.1.2)
       activesupport
       thread_cache
 
