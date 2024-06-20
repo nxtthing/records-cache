@@ -51,9 +51,10 @@ class RecordsCache
     reset
     records_scope = @record_class.all
     records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
-    @last_cached_update_at = records_scope.pluck(:updated_at).max if handle_updates?
     @last_reload_at = Time.current if handle_expiration?
-    @records = @settings[:after_load].call(records_scope.to_a)
+    records = records_scope.to_a
+    @last_cached_update_at = records.pluck(:updated_at).max if handle_updates?
+    @records = @settings[:after_load].call(records)
   end
 
   def outdated_expiration?
