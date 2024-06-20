@@ -49,7 +49,7 @@ class RecordsCache
 
   def reload
     reset
-    records_scope = @record_class.all.to_a
+    records_scope = @record_class.all
     records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
     @last_cached_update_at = records_scope.pluck(:updated_at).max if handle_updates?
     @last_reload_at = Time.current if handle_expiration?
@@ -76,7 +76,6 @@ class RecordsCache
   end
 
   def dup_record(record)
-
     record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
   end
 
