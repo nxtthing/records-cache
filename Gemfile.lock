@@ -1,0 +1,49 @@
+GIT
+  remote: https://github.com/nxtthing/thread-cache
+  revision: f8f86e6873ee2a718ef0b7d3aad278a91066e975
+  specs:
+    thread_cache (0.0.1)
+      activesupport
+
+PATH
+  remote: .
+  specs:
+    records_cache (0.0.7)
+      activesupport
+      thread_cache
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activesupport (7.1.3.4)
+      base64
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      connection_pool (>= 2.2.5)
+      drb
+      i18n (>= 1.6, < 2)
+      minitest (>= 5.1)
+      mutex_m
+      tzinfo (~> 2.0)
+    base64 (0.2.0)
+    bigdecimal (3.1.8)
+    concurrent-ruby (1.3.3)
+    connection_pool (2.4.1)
+    drb (2.2.1)
+    i18n (1.14.5)
+      concurrent-ruby (~> 1.0)
+    minitest (5.24.0)
+    mutex_m (0.2.0)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
+
+PLATFORMS
+  arm64-darwin-21
+  ruby
+
+DEPENDENCIES
+  records_cache!
+  thread_cache!
+
+BUNDLED WITH
+   2.5.5
