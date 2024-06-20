@@ -13,9 +13,9 @@ class RecordsCache
     end
   end
 
-  def thread_unsafe_select(&comparator_block)
+  def thread_unsafe_select(group_key: nil, group_value: nil, &comparator_block)
     result = []
-    thread_unsafe_each do |record|
+    thread_unsafe_each(group_key:, group_value:) do |record|
       result << result_record(record) if comparator_block.call(record)
     end
     result
@@ -52,9 +52,10 @@ class RecordsCache
     records_scope = @record_class.all
     records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
     @last_reload_at = Time.current if handle_expiration?
-    records = records_scope.to_a
-    @last_cached_update_at = records.pluck(:updated_at).max if handle_updates?
-    @records = @settings[:after_load].call(records)
+    results = records_scope.to_a
+    @last_cached_update_at = results.pluck(:updated_at).max if handle_updates?
+    @grouped_records = {}
+    @records = @settings[:after_load].call(results)
   end
 
   def outdated_expiration?
@@ -82,8 +83,14 @@ class RecordsCache
     record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
   end
 
-  def thread_unsafe_each(&)
-    (@records || reload).each(&)
+  def thread_unsafe_each(group_key: nil, group_value: nil, &)
+    results = (@records || reload)
+    if group_key
+      @grouped_records[group_key] ||= results.group_by(&group_key)
+      results = @grouped_records[group_key][group_value]
+    end
+
+    results.each(&)
   end
 
   def outdated?
