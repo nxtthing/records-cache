@@ -74,7 +74,7 @@ class RecordsCache
   def result_record(record)
     return record unless @settings[:thread_safe]
 
-    ThreadCache.fetch(record.class.name, record.id) do
+    ::ThreadCache.fetch(record.class.name, record.id) do
       dup_record(record)
     end
   end
