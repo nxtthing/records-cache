@@ -1,3 +1,5 @@
+require "thread_cache"
+
 class RecordsCache
   include Enumerable
 
