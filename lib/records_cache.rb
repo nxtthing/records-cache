@@ -163,16 +163,41 @@ class RecordsCache
       end
 
       def cache_belongs_to_association(association)
-        alias_method "original_#{association}", association
+        cache_association(:belongs_to, association) do |object, assoc|
+          assoc.klass.records_cache.by_id(object.send(assoc.reflection.foreign_key))
+        end
+      end
 
-        define_method association do |**args|
-          return send("original_#{association}", **args) if association(association.to_sym).loaded? || args.present?
+      def cache_has_many_association(association)
+        cache_association(:has_many, association) do |object, assoc|
+          reflect = assoc.reflection
+          p_key = object.send(refl.association_primary_key)
+          assoc.klass.records_cache.thread_unsafe_select(
+            group_key: :sprint_id,
+            group_value: object.sprint_id
+          ) do |record|
+            record.send(reflect.foreign_key) == p_key
+          end
+        end
+      end
 
-          cache = @belongs_to_associations_record_cache ||= {}
-          return cache[association] if cache.key?(association)
+      private
 
-          value = association(association).klass.records_cache.by_id(send("#{association}_id"))
-          cache[association] = value
+      def cache_association(association_type, association_name, &get_value)
+        alias_method "original_#{association_name}", association_name
+
+        define_method association_name do |**args|
+          assoc = association(association_name)
+          if assoc.loaded? || args.present?
+            return send("original_#{association_name}", **args)
+          end
+
+          cache_name = "@#{association_type}_associations_record_cache"
+          instance_variable_set(cache_name, {}) unless instance_variable_defined?(cache_name)
+          cache = instance_variable_get(cache_name)
+          return cache[association_name] if cache.key?(association_name)
+
+          cache[association_name] = get_value.call(object, assoc)
         end
       end
     end
