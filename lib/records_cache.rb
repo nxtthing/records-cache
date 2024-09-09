@@ -197,7 +197,7 @@ class RecordsCache
           cache = instance_variable_get(cache_name)
           return cache[association_name] if cache.key?(association_name)
 
-          cache[association_name] = get_value.call(object, assoc)
+          cache[association_name] = get_value.call(self, assoc)
         end
       end
     end
