@@ -23,6 +23,13 @@ class RecordsCache
     result
   end
 
+  def thread_unsafe_find(group_key: nil, group_value: nil, &comparator_block)
+    thread_unsafe_each(group_key:, group_value:) do |record|
+      return  result_record(record) if comparator_block.call(record)
+    end
+    nil
+  end
+
   def by_id(id)
     @by_id ||= to_a.index_by(&:id)
     @by_id[id] ||= @record_class.find_by(id:)
@@ -163,16 +170,30 @@ class RecordsCache
       end
 
       def cache_belongs_to_association(association)
-        cache_association(:belongs_to, association) do |object, assoc|
+        cache_association(association) do |object, assoc|
           assoc.klass.records_cache.by_id(object.send(assoc.reflection.foreign_key))
         end
       end
 
       def cache_has_many_association(association)
-        cache_association(:has_many, association) do |object, assoc|
+        cache_association(association) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(refl.association_primary_key)
-          assoc.klass.records_cache.thread_unsafe_select(
+          records = assoc.klass.records_cache.thread_unsafe_select(
+            group_key: :sprint_id,
+            group_value: object.sprint_id
+          ) do |record|
+            record.send(reflect.foreign_key) == p_key
+          end
+          records.map{|record|result_record(record)}
+        end
+      end
+
+      def cache_has_one_association(association)
+        cache_association(association) do |object, assoc|
+          reflect = assoc.reflection
+          p_key = object.send(refl.association_primary_key)
+          assoc.klass.records_cache.thread_unsafe_find(
             group_key: :sprint_id,
             group_value: object.sprint_id
           ) do |record|
@@ -183,7 +204,7 @@ class RecordsCache
 
       private
 
-      def cache_association(association_type, association_name, &get_value)
+      def cache_association(association_name, &get_value)
         alias_method "original_#{association_name}", association_name
 
         define_method association_name do |**args|
@@ -192,7 +213,7 @@ class RecordsCache
             return send("original_#{association_name}", **args)
           end
 
-          cache_name = "@#{association_type}_associations_record_cache"
+          cache_name = "@#{association_name}_associations_record_cache"
           instance_variable_set(cache_name, {}) unless instance_variable_defined?(cache_name)
           cache = instance_variable_get(cache_name)
           return cache[association_name] if cache.key?(association_name)
