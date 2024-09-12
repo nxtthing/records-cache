@@ -37,7 +37,7 @@ module RecordsCache
       def cache_has_many_association(association)
         cache_association(association) do |object, assoc|
           reflect = assoc.reflection
-          p_key = object.send(refl.association_primary_key)
+          p_key = object.send(reflect.association_primary_key)
           records = assoc.klass.records_cache.thread_unsafe_select(
             group_key: :sprint_id,
             group_value: object.sprint_id
@@ -55,7 +55,7 @@ module RecordsCache
       def cache_has_one_association(association)
         cache_association(association) do |object, assoc|
           reflect = assoc.reflection
-          p_key = object.send(refl.association_primary_key)
+          p_key = object.send(reflect.association_primary_key)
           assoc.klass.records_cache.thread_unsafe_find(
             group_key: :sprint_id,
             group_value: object.sprint_id
