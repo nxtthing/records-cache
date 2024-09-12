@@ -47,7 +47,7 @@ module RecordsCache
           end
           HasManyAssociation.new(
             records.map { |record| cache.result_record(record) },
-            self,
+            object,
             association
           )
         end
