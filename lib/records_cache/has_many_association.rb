@@ -7,7 +7,7 @@ module RecordsCache
     end
 
     def build(**)
-      @klass.public_send("original_#{@association_name}").build(**)
+      @owner.public_send("original_#{@association_name}").build(**)
     end
   end
 end
