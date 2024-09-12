@@ -1,3 +1,4 @@
+require "records_cache/cache"
 require "records_cache/has_many_association"
 
 module RecordsCache
@@ -12,7 +13,7 @@ module RecordsCache
         thread_safe: true,
         after_load: -> (records) { records }
       )
-        records_cache = RecordsCache.new(
+        records_cache = Cache.new(
           self,
           { scope_modifier:, handle_updates:, expiration_delay:, thread_safe:, after_load: }
         )
