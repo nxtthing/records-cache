@@ -28,14 +28,14 @@ module RecordsCache
         records_cache.reload if Rake.application.top_level_tasks.empty?
       end
 
-      def cache_belongs_to_association(association)
-        cache_association(association) do |object, assoc|
+      def cache_belongs_to_association(association_name)
+        cache_association(association_name) do |object, assoc|
           assoc.klass.records_cache.by_id(object.send(assoc.reflection.foreign_key))
         end
       end
 
-      def cache_has_many_association(association)
-        cache_association(association) do |object, assoc|
+      def cache_has_many_association(association_name)
+        cache_association(association_name) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
           cache = assoc.klass.records_cache
@@ -53,8 +53,8 @@ module RecordsCache
         end
       end
 
-      def cache_has_one_association(association)
-        cache_association(association) do |object, assoc|
+      def cache_has_one_association(association_name)
+        cache_association(association_name) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
           assoc.klass.records_cache.thread_unsafe_find(
@@ -72,7 +72,7 @@ module RecordsCache
         alias_method "original_#{association_name}", association_name
 
         define_method association_name do |**args|
-          assoc = association(association_name)
+          assoc = self.class.association(association_name)
           if assoc.loaded? || args.present?
             return send("original_#{association_name}", **args)
           end
