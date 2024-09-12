@@ -72,7 +72,7 @@ module RecordsCache
         alias_method "original_#{association_name}", association_name
 
         define_method association_name do |**args|
-          assoc = self.class.association(association_name)
+          assoc = association(association_name)
           if assoc.loaded? || args.present?
             return send("original_#{association_name}", **args)
           end
