@@ -97,7 +97,7 @@ module RecordsCache
       results = (@records || reload)
       if group_key
         @grouped_records[group_key] ||= results.group_by(&group_key)
-        results = @grouped_records[group_key][group_value]
+        results = @grouped_records[group_key][group_value] || []
       end
 
       results.each(&)
