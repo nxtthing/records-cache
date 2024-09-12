@@ -79,8 +79,6 @@ module RecordsCache
       @handling_reload
     end
 
-    private
-
     def result_record(record)
       return record unless @settings[:thread_safe]
 
@@ -88,6 +86,8 @@ module RecordsCache
         dup_record(record)
       end
     end
+
+    private
 
     def dup_record(record)
       record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)

@@ -38,14 +38,15 @@ module RecordsCache
         cache_association(association) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
-          records = assoc.klass.records_cache.thread_unsafe_select(
+          cache = assoc.klass.records_cache
+          records = cache.thread_unsafe_select(
             group_key: :sprint_id,
             group_value: object.sprint_id
           ) do |record|
             record.send(reflect.foreign_key) == p_key
           end
           HasManyAssociation.new(
-            records.map { |record| result_record(record) },
+            records.map { |record| cache.result_record(record) },
             self,
             association
           )
