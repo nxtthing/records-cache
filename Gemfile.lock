@@ -8,7 +8,7 @@ GIT
 PATH
   remote: .
   specs:
-    records_cache (0.2.7)
+    records_cache (0.2.8)
       activesupport
       thread_cache
 
