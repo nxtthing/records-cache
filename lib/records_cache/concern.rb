@@ -73,7 +73,7 @@ module RecordsCache
 
         define_method association_name do |**args|
           assoc = association(association_name)
-          if assoc.loaded? || args.present?
+          if assoc.loaded? || args.present? || new_record?
             return send("original_#{association_name}", **args)
           end
 
