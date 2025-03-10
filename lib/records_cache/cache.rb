@@ -45,6 +45,7 @@ module RecordsCache
     def reset
       @records = nil
       @by_id = nil
+      @grouped_records = {}
     end
 
     def handle_updates?
@@ -64,7 +65,6 @@ module RecordsCache
       @last_reload_at = Time.current if handle_expiration?
       results = records_scope.to_a
       @last_cached_update_at = results.pluck(:updated_at).max if handle_updates?
-      @grouped_records = {}
       @records = @settings[:after_load].call(results)
     end
 
