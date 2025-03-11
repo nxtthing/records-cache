@@ -26,16 +26,13 @@ module RecordsCache
 
     def thread_unsafe_find(group_key: nil, group_value: nil, &comparator_block)
       thread_unsafe_each(group_key:, group_value:) do |record|
-        return  result_record(record) if comparator_block.call(record)
+        return result_record(record) if comparator_block.call(record)
       end
       nil
     end
 
     def by_id(id)
-      @by_id ||= to_a.index_by(&:id)
-      @by_id[id] ||= @record_class.find_by(id:)
-      record = @by_id[id]
-      record && result_record(record)
+      thread_unsafe_find(group_key: :id, group_value: id) { |_record| true }
     end
 
     def by_ids(ids)
@@ -44,7 +41,6 @@ module RecordsCache
 
     def reset
       @records = nil
-      @by_id = nil
       @grouped_records = {}
     end
 
