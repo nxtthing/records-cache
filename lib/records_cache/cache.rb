@@ -49,14 +49,20 @@ module RecordsCache
       @handling_reload = false
     end
 
+    def reset
+      @records = nil
+      @grouped_records = {}
+    end
+
     def reload
       records_scope = @record_class.all
       records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
       @last_reload_at = Time.current if handle_expiration?
       results = records_scope.to_a
       @last_cached_update_at = results.pluck(:updated_at).max if handle_updates?
-      @grouped_records = {}
-      @records = @settings[:after_load].call(results)
+      results = @settings[:after_load].call(results)
+      reset
+      @records = results
     end
 
     def outdated_expiration?
