@@ -25,7 +25,7 @@ module RecordsCache
         after_commit -> { self.class.records_cache.reset }
 
         # wait until cache is populated on at startup synchronously
-        records_cache.reload if Rake.application.top_level_tasks.empty?
+        records_cache.handle_reload if Rake.application.top_level_tasks.empty?
       end
 
       def cache_belongs_to_association(association_name)

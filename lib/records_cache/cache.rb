@@ -44,9 +44,7 @@ module RecordsCache
     end
 
     def handle_reload
-      @handling_reload = true
       reload if outdated?
-      @handling_reload = false
     end
 
     def reset
@@ -54,26 +52,8 @@ module RecordsCache
       @grouped_records = {}
     end
 
-    def reload
-      records_scope = @record_class.all
-      records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
-      @last_reload_at = Time.current if handle_expiration?
-      results = records_scope.to_a
-      @last_cached_update_at = results.pluck(:updated_at).max if handle_updates?
-      results = @settings[:after_load].call(results)
-      reset
-      @records = results
-    end
-
-    def outdated_expiration?
-      return false unless handle_expiration?
-      return true unless @last_reload_at
-
-      @last_reload_at < @settings[:expiration_delay].ago
-    end
-
-    def handling_reload?
-      @handling_reload
+    def reloading?
+      @reloading
     end
 
     def result_record(record)
@@ -84,7 +64,24 @@ module RecordsCache
       end
     end
 
+    def handle_expiration?
+      @settings[:expiration_delay]
+    end
+
     private
+
+    def reload
+      @reloading = true
+      records_scope = @record_class.all
+      records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
+      results = records_scope.to_a
+      @last_reload_at = Time.current if handle_expiration?
+      @last_cached_update_at = results.pluck(:updated_at).max if handle_updates?
+      results = @settings[:after_load].call(results)
+      reset
+      @reloading = false
+      @records = results
+    end
 
     def dup_record(record)
       record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
@@ -101,11 +98,14 @@ module RecordsCache
     end
 
     def outdated?
-      outdated_updates? || outdated_expiration?
+      @records || outdated_updates? || outdated_expiration?
     end
 
-    def handle_expiration?
-      @settings[:expiration_delay]
+    def outdated_expiration?
+      return false unless handle_expiration?
+      return true unless @last_reload_at
+
+      @last_reload_at < @settings[:expiration_delay].ago
     end
 
     def outdated_updates?
@@ -122,7 +122,7 @@ module RecordsCache
 
       def handle_reloads(async: false)
         caches_to_handle_reload = record_caches.select do |c|
-          !c.handling_reload? && (c.handle_updates? || c.outdated_expiration?)
+          !c.reloading? && (c.handle_updates? || c.handle_expiration?)
         end
 
         return if caches_to_handle_reload.blank?
