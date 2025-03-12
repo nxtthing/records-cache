@@ -98,7 +98,7 @@ module RecordsCache
     end
 
     def outdated?
-      @records || outdated_updates? || outdated_expiration?
+      !@records || outdated_updates? || outdated_expiration?
     end
 
     def outdated_expiration?
