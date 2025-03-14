@@ -38,7 +38,7 @@ module RecordsCache
       return result unless @record_class.exists?(id:)
 
       # reload and retry in case if record exists in DB but does not exist in cache
-      reset
+      reload
       by_id(id, is_retry: true)
     end
 
@@ -52,11 +52,6 @@ module RecordsCache
 
     def handle_reload
       reload if outdated?
-    end
-
-    def reset
-      @records = nil
-      @grouped_records = {}
     end
 
     def reloading?
@@ -75,9 +70,8 @@ module RecordsCache
       @settings[:expiration_delay]
     end
 
-    private
-
     def reload
+      Sentry.capture_message("DEBUG [AY] concurrent reload of cache") if @reloading
       @reloading = true
       records_scope = @record_class.all
       records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
@@ -88,6 +82,13 @@ module RecordsCache
       reset
       @reloading = false
       @records = results
+    end
+
+    private
+
+    def reset
+      @records = nil
+      @grouped_records = {}
     end
 
     def dup_record(record)
@@ -112,8 +113,11 @@ module RecordsCache
               reloading: @reloading
             },
             group: {
-              val_was:,
-              val_now:
+              val: @grouped_records[group_key]&.transform_values(&:size),
+              val_class: @grouped_records[group_key].class.name,
+              val_size: @grouped_records[group_key]&.count,
+              val_was: val_was&.transform_values(&:size),
+              val_now: val_now&.transform_values(&:size)
             },
             args: {
               group_key:,
