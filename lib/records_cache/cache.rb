@@ -31,8 +31,15 @@ module RecordsCache
       nil
     end
 
-    def by_id(id)
-      thread_unsafe_find(group_key: :id, group_value: id) { |_record| true }
+    def by_id(id, is_retry: false)
+      result = thread_unsafe_find(group_key: :id, group_value: id) { |_record| true }
+      return result if result
+      return result if is_retry
+      return result unless @record_class.exists?(id:)
+
+      # reload and retry in case if record exists in DB but does not exist in cache
+      reset
+      by_id(id, is_retry: true)
     end
 
     def by_ids(ids)
@@ -88,9 +95,32 @@ module RecordsCache
     end
 
     def thread_unsafe_each(group_key: nil, group_value: nil, &)
+      records_was = @records
       results = (@records || reload)
       if group_key
-        @grouped_records[group_key] ||= results.group_by(&group_key)
+        val_was = @grouped_records[group_key]
+        val_now = @grouped_records[group_key] ||= results.group_by(&group_key)
+        unless @grouped_records[group_key]
+          Sentry.capture_message("DEBUG [AY] empty records cache", contexts: {
+            cache: {
+              results_class: results.class.name,
+              results_size: results&.count,
+              records_class: @records.class.name,
+              records_size: @records&.count,
+              records_was_class: records_was.class.name,
+              records_was_size: records_was&.count,
+              reloading: @reloading
+            },
+            group: {
+              val_was:,
+              val_now:
+            },
+            args: {
+              group_key:,
+              group_value:
+            }
+          })
+        end
         results = @grouped_records[group_key][group_value] || []
       end
 
