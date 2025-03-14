@@ -71,7 +71,7 @@ module RecordsCache
     end
 
     def reload
-      Sentry.capture_message("DEBUG [AY] concurrent reload of cache") if @reloading
+      # Sentry.capture_message("DEBUG [AY] concurrent reload of cache") if @reloading
       @reloading = true
       records_scope = @record_class.all
       records_scope = @settings[:scope_modifier].call(records_scope) if @settings[:scope_modifier]
@@ -96,36 +96,10 @@ module RecordsCache
     end
 
     def thread_unsafe_each(group_key: nil, group_value: nil, &)
-      records_was = @records
       results = (@records || reload)
       if group_key
-        val_was = @grouped_records[group_key]
-        val_now = @grouped_records[group_key] ||= results.group_by(&group_key)
-        unless @grouped_records[group_key]
-          Sentry.capture_message("DEBUG [AY] empty records cache", contexts: {
-            cache: {
-              results_class: results.class.name,
-              results_size: results&.count,
-              records_class: @records.class.name,
-              records_size: @records&.count,
-              records_was_class: records_was.class.name,
-              records_was_size: records_was&.count,
-              reloading: @reloading
-            },
-            group: {
-              val: @grouped_records[group_key]&.transform_values(&:size),
-              val_class: @grouped_records[group_key].class.name,
-              val_size: @grouped_records[group_key]&.count,
-              val_was: val_was&.transform_values(&:size),
-              val_now: val_now&.transform_values(&:size)
-            },
-            args: {
-              group_key:,
-              group_value:
-            }
-          })
-        end
-        results = @grouped_records[group_key][group_value] || []
+        group = @grouped_records[group_key] ||= results.group_by(&group_key)
+        results = group[group_value] || []
       end
 
       results.each(&)
