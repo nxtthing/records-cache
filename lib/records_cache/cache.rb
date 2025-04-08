@@ -84,12 +84,12 @@ module RecordsCache
       @records = results
     end
 
-    private
-
     def reset
       @records = nil
       @grouped_records = {}
     end
+
+    private
 
     def dup_record(record)
       record.class.allocate.init_with_attributes(record.instance_variable_get(:@attributes).dup)
