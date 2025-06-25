@@ -31,7 +31,19 @@ module RecordsCache
 
       def cache_belongs_to_association(association_name)
         cache_association(association_name) do |object, assoc|
-          assoc.klass.records_cache.by_id(object.send(assoc.reflection.foreign_key))
+          cache = assoc.klass.records_cache
+          reflect = assoc.reflection
+          foreign_key = reflect.foreign_key
+          key_value = object.send(foreign_key)
+          primary_key = reflect.association_primary_key.to_sym
+          custom_class = reflect.class_name && reflect.class_name.constantize
+          if primary_key != :id
+            cache.thread_unsafe_find(group_key: primary_key, group_value: key_value) do |record|
+              (object.sprint_id == record.sprint_id) && (!custom_class || record.is_a?(custom_class))
+            end
+          else
+            cache.by_id(key_value)
+          end
         end
       end
 
@@ -40,11 +52,12 @@ module RecordsCache
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
           cache = assoc.klass.records_cache
+          custom_class = reflect.class_name && reflect.class_name.constantize
           records = cache.thread_unsafe_select(
             group_key: :sprint_id,
             group_value: object.sprint_id
           ) do |record|
-            record.send(reflect.foreign_key) == p_key
+            record.send(reflect.foreign_key) == p_key && (!custom_class || record.is_a?(custom_class))
           end
           HasManyAssociation.new(
             records.map { |record| cache.result_record(record) },
