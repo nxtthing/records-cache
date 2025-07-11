@@ -30,7 +30,7 @@ module RecordsCache
       end
 
       def cache_belongs_to_association(association_name)
-        cache_association(association_name) do |object, assoc|
+        cache_association(association_name, :belongs_to) do |object, assoc|
           cache = assoc.klass.records_cache
           reflect = assoc.reflection
           foreign_key = reflect.foreign_key
@@ -48,7 +48,7 @@ module RecordsCache
       end
 
       def cache_has_many_association(association_name)
-        cache_association(association_name) do |object, assoc|
+        cache_association(association_name, :has_many) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
           cache = assoc.klass.records_cache
@@ -68,7 +68,7 @@ module RecordsCache
       end
 
       def cache_has_one_association(association_name)
-        cache_association(association_name) do |object, assoc|
+        cache_association(association_name, :has_one) do |object, assoc|
           reflect = assoc.reflection
           p_key = object.send(reflect.association_primary_key)
           assoc.klass.records_cache.thread_unsafe_find(
@@ -82,12 +82,12 @@ module RecordsCache
 
       private
 
-      def cache_association(association_name, &get_value)
+      def cache_association(association_name, type, &get_value)
         alias_method "original_#{association_name}", association_name
 
         define_method association_name do |**args|
           assoc = association(association_name)
-          if assoc.loaded? || args.present? || new_record?
+          if assoc.loaded? || args.present? || ((type != :belongs_to) && new_record?)
             return send("original_#{association_name}", **args)
           end
 
